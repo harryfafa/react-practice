@@ -7,9 +7,76 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-white dark:bg-[#272727] m-0 p-0 box-border;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
+}
+
+@layer base {
+
+  input,
+  textarea,
+  select {
+    @apply bg-white text-black;
+  }
+
+  .btn {
+    @apply py-2 px-3 my-4 mx-2 hover:cursor-pointer bg-white text-black border-0
+  }
+}
+
+@layer components {
+  .form-input {
+    @apply text-[1.05rem] p-2 border border-solid border-[#272715] m-[0.35rem] rounded
+  }
+}
+
+@keyframes border_color {
+  0% {
+    border-color: red;
+  }
+
+  33% {
+    border-color: limegreen;
+  }
+
+  66% {
+    border-color: yellow;
+  }
+}
+
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleDown {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(0);
+  }
+}
+
+
+.animate-border-color {
+  animation: border_color 2s linear infinite;
+}
+
+.form-scaleUp {
+  animation: scaleUp 0.5s ease forwards;
+}
+
+.form-remove {
+  animation: scaleDown 0.5s ease forwards;
 }
