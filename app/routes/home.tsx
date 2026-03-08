@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
-import type { Route } from "./+types/home";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faPlusSquare, faL } from "@fortawesome/free-solid-svg-icons";
-
-const scoreOption = {
+import { faPlusSquare } from "@fortawesome/free-solid-svg-icons";
+import CourseForm from "~/components/home/CourseForm";
+export const scoreOption = {
   'A': 4.0,
   'A-': 3.7,
   'B+': 3.4,
@@ -16,8 +15,8 @@ const scoreOption = {
   'D-': 0.7,
   'F': 0.0
 } as const;
-type Grade = keyof typeof scoreOption;
-const classList = [
+export type Grade = keyof typeof scoreOption;
+export const classList = [
   { code: "ACCT", name: "Accounting" },
   { code: "ASL", name: "American Sign Language" },
   { code: "ANTH", name: "Anthropology" },
@@ -79,9 +78,10 @@ const classList = [
   { code: "TONG", name: "Tongan" },
   { code: "WLNG", name: "World Language" }
 ] as const;
-type Category = typeof classList[number]['code'];
+export type Category = typeof classList[number]['code'];
 
-type Course = {
+export type Course = {
+  id: number,
   category: Category | '',
   classNumber: number | '',
   credit: number | '',
@@ -91,25 +91,17 @@ type Course = {
 }
 
 const defaultForm: Course[] = [
-  { category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
-  { category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
-  { category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
+  { id: 0, category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
+  { id: 1, category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
+  { id: 2, category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: false },
 ]
 
 export default function Home() {
   const [course, setCourse] = useState<Course[]>(defaultForm)
+  const courseIdRef = useRef(3);
 
-  const onCourseChange = (field: keyof Course, index: number, value: string) => {
-    const newCourse = [...course];
-    newCourse[index] = {
-      ...newCourse[index],
-      [field]: value
-    }
-    setCourse(newCourse);
-  }
-
-  const gpaKey = course.map(({ credit, grade }) => `${credit}-${grade}`).join("|");
   const gpa = useMemo(() => {
+    console.log('render get gpaKey')
     let sum = 0;
     let creditSum = 0;
 
@@ -123,29 +115,58 @@ export default function Home() {
       }
     })
     return creditSum === 0 ? 0 : sum / creditSum;
-  }, [gpaKey])
+  }, [course.map(({ credit, grade }) => `${credit}-${grade}`).join("|")])  // 當 credit 或 grade 變更時才重新計算 GPA
+
+  const onCourseChange = useCallback((field: keyof Course, id: number, value: string) => {
+    setCourse(prevCourse => {
+      const newCourse = [...prevCourse];
+      const _index = newCourse.findIndex(course => course.id === id)
+      if (_index !== -1) {
+        newCourse[_index] = {
+          ...newCourse[_index],
+          [field]: value
+        }
+      }
+      return newCourse;
+    });
+  }, [])
+
+  const removeForm = useCallback((id: number) => {
+    // 觸發移除動畫
+    setCourse(prevCourse => {
+      const newCourse = [...prevCourse];
+      const _index = newCourse.findIndex(i => i.id === id);
+      if (_index !== -1) {
+        newCourse[_index] = {
+          ...newCourse[_index],
+          isRemoving: true,
+        }
+      }
+      return newCourse
+    });
+
+    // 動畫結束後移除該 course
+    setTimeout(() => {
+      setCourse(prev => prev.filter((i) => i.id !== id))
+    }, 500)
+  }, [])
 
   const onAddForm = () => {
-    const newCourse = [...course];
-    newCourse.push({ category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: true })
-    setCourse(newCourse);
+    setCourse(prevCourse => {
+      const newCourse = [...prevCourse];
+      newCourse.push({ id: courseIdRef.current++, category: '', classNumber: '', credit: '', grade: '', isRemoving: false, isCreating: true });
+      return newCourse;
+    });
 
     setTimeout(() => {
-      newCourse[newCourse.length - 1].isCreating = false;
-      setCourse(newCourse)
-    }, 500)
-  }
-
-  const removeForm = (index: number) => {
-    const newCourse = [...course];
-    newCourse[index] = {
-      ...newCourse[index],
-      isRemoving: true
-    }
-    setCourse(newCourse);
-
-    setTimeout(() => {
-      setCourse(prev => prev.filter((_, i) => i !== index))
+      setCourse(prevCourse => {
+        const newCourse = [...prevCourse];
+        newCourse[newCourse.length - 1] = {
+          ...newCourse[newCourse.length - 1],
+          isCreating: false
+        }
+        return newCourse
+      });
     }, 500)
   }
 
@@ -159,18 +180,14 @@ export default function Home() {
       </div>
       <section>
         {
-          course.map((item, index) => <form key={`form${index}`} onSubmit={e => e.preventDefault()} className={`flex ${item.isCreating ? 'form-scaleUp' : ''} ${item.isRemoving ? 'form-remove' : ''}`}>
-            <input type="text" placeholder="class category" className="form-input" list="classOpt" value={item.category} onChange={(event) => onCourseChange('category', index, event.target.value)} />
-            <input type="text" placeholder="class number" className="form-input" value={item.classNumber} onChange={(event) => onCourseChange('classNumber', index, event.target.value)} />
-            <input type="number" placeholder="credits" min={0} max={6} className="form-input w-[15%]" value={item.credit} onChange={(event) => onCourseChange('credit', index, event.target.value)} />
-            <select name="grade" id="" className="form-input" value={item.grade} onChange={(event) => onCourseChange('grade', index, event.target.value)}>
-              <option value=""></option>
-              {Object.entries(scoreOption).map(([key, value]) => <option key={`gradeOpt${key}`} value={value}>{key}</option>)}
-            </select>
-            <button type="button" className="border-0 cursor-pointer bg-[#272727]" onClick={() => removeForm(index)}>
-              <FontAwesomeIcon icon={faTrash} className="text-[1.25rem] pointer-events-none text-white" />
-            </button>
-          </form>)
+          course.map((item) =>
+            <CourseForm
+              key={`courseFrom${item.id}`}
+              item={item}
+              onCourseChange={onCourseChange}
+              removeForm={removeForm}
+            />
+          )
         }
       </section>
 
