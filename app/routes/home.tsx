@@ -115,7 +115,7 @@ export default function Home() {
       }
     })
     return creditSum === 0 ? 0 : sum / creditSum;
-  }, [course.map(({ credit, grade }) => `${credit}-${grade}`).join("|")])  // 當 credit 或 grade 變更時才重新計算 GPA
+  }, [course])
 
   const onCourseChange = useCallback((field: keyof Course, id: number, value: string) => {
     setCourse(prevCourse => {
@@ -174,6 +174,8 @@ export default function Home() {
   return <main>
     <section className="flex p-4 flex-col text-center items-center">
       <h1 className="text-5xl">Grade Input Form</h1>
+
+      {/* 排序功能暫無實作 */}
       <div>
         <button type="button" className="btn">降序排序</button>
         <button type="button" className="btn">升序排序</button>
